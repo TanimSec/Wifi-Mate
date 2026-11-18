@@ -77,6 +77,20 @@ Passwords and API keys go into your system's password store (Keychain, Windows C
 4. Add `_nomap` to the end of your Wi-Fi name.
 5. Make sure the admin page can't be reached from the internet.
 
+## Bonus: Site X-ray
+
+[`site-xray/`](site-xray/) is a second skill that checks a **website** instead of your network. Claude opens the site as different visitors (a German laptop, an American laptop and a British phone, or just your own Chrome) and shows:
+- which tracking companies get your data before you click anything, and after "Reject all"
+- whether your search word or a typed email (never submitted) leaves the site
+- ad companies sharing your ID with each other
+- session recording and device fingerprinting
+
+```bash
+git clone https://github.com/TanimSec/Wifi-Mate /tmp/wm && cp -R /tmp/wm/site-xray ~/.claude/skills/site-xray && cd ~/.claude/skills/site-xray && npm install
+```
+
+It needs Node 20+ and Chrome. Visiting as people in other countries needs a [Gologin](https://gologin.com/cloud-browser/) account. Without one, use `local` mode. See [site-xray/README.md](site-xray/README.md).
+
 ## Files
 
 | Path | What it does |
@@ -85,3 +99,4 @@ Passwords and API keys go into your system's password store (Keychain, Windows C
 | `prompts/` | Copy-paste versions of both jobs |
 | `scripts/dns-check.sh` | Shows who answers your DNS lookups |
 | `scripts/mask.py` | Masks private details in any output |
+| `site-xray/` | The Site X-ray skill (website privacy check) |

@@ -21,7 +21,7 @@ No Gologin account? The `local` mode uses your own Chrome and your own connectio
 As a Claude Code skill:
 
 ```bash
-git clone https://github.com/Bodila51/reverse-engineer-Wi-Fi-router /tmp/re && cp -R /tmp/re/site-xray ~/.claude/skills/site-xray && cd ~/.claude/skills/site-xray && npm install
+git clone https://github.com/TanimSec/Wifi-Mate /tmp/wm && cp -R /tmp/wm/site-xray ~/.claude/skills/site-xray && cd ~/.claude/skills/site-xray && npm install
 ```
 
 Needs Node 20+ and Google Chrome.
@@ -79,8 +79,4 @@ The report ends with a table: each agent, its model (read from Claude Code's own
 
 ## Data
 
-`data/companies.json` maps tracker domains to companies and what they do. It is our own list (MIT). A headquarters country is filled in only where it was checked on the company's own website.
-
-## License
-
-MIT. Uses [Playwright](https://playwright.dev) (Apache-2.0) and [tldts](https://github.com/remusao/tldts) (MIT).
+`data/companies.json` maps tracker domains to companies and what they do. A headquarters country is filled in only where it was checked on the company's own website.
