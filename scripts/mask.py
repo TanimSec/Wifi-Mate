@@ -5,7 +5,9 @@ Usage: some-command | python3 scripts/mask.py
 
 Masks: public IPv4 (keeps the first two parts), IPv6, the second half of
 MAC addresses, Windows PC names, and the value of any serial number, Wi-Fi
-name (SSID), BSSID or password field, in plain text, JSON or XML output.
+name (SSID), BSSID, password, key, secret, token, hash or SNMP community
+field, in plain text, JSON, XML, FortiOS `set` lines, RouterOS and OpenWrt
+uci output.
 Keeps home-network addresses (192.168.x.x, 10.x.x.x, 172.16-31.x.x),
 well-known public resolvers and carrier-grade NAT prefixes readable.
 """
@@ -19,10 +21,13 @@ CGNAT = ipaddress.ip_network("100.64.0.0/10")
 IPV4 = re.compile(r"\b(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\b")
 MAC = re.compile(r"\b([0-9A-Fa-f]{2})([:-])([0-9A-Fa-f]{2})\2([0-9A-Fa-f]{2})\2[0-9A-Fa-f]{2}\2[0-9A-Fa-f]{2}\2[0-9A-Fa-f]{2}\b")
 IPV6_CANDIDATE = re.compile(r"(?<![0-9A-Za-z:*])[0-9A-Fa-f]*:[0-9A-Fa-f:]*:[0-9A-Fa-f.]*(?:%\w+)?(?![0-9A-Za-z:*])")
-KEYS = r"(?:serial|e?ssid|bssid|passphrase|password|passwd|psk|wpa_?key|wi-?fi[ _]?name|network[ _]?name)\w*"
+KEYS = (r"(?:serial|e?ssid|bssid|passphrase|password|passwd|psk|wpa_?key|wi-?fi[ _]?name|network[ _]?name"
+        r"|secret|pre-?shared-?key|private-?key|auth-?key|api-?key|community|token|bcrypt-hash|\w*hash|prv"
+        r"|(?<![A-Za-z])key)\w*")
 SECRET_XML = re.compile(rf"(<\s*{KEYS}[^>]*>)([^<]+)", re.I)
 SECRET_QUOTED = re.compile(rf"({KEYS}[\"']?\s*[:=]\s*)([\"'])(.*?)\2", re.I)
 SECRET_PLAIN = re.compile(rf"({KEYS}[\"']?\s*[:=]\s*)(?![\"'*\s])([^,;}}\]<\r\n]+)", re.I)
+SECRET_SET = re.compile(rf"(\bset\s+{KEYS}\s+)(\S.*)", re.I)
 PC_NAME = re.compile(r"\b(DESKTOP|LAPTOP)-[A-Z0-9]{4,}\b", re.I)
 
 
@@ -53,6 +58,7 @@ def mask_ipv6(m):
 def mask_line(line):
     line = SECRET_XML.sub(lambda m: f"{m.group(1)}****", line)
     line = SECRET_QUOTED.sub(lambda m: f"{m.group(1)}{m.group(2)}****{m.group(2)}", line)
+    line = SECRET_SET.sub(lambda m: f"{m.group(1)}****", line)
     line = SECRET_PLAIN.sub(lambda m: f"{m.group(1)}****", line)
     line = PC_NAME.sub(lambda m: f"{m.group(1)}-****", line)
     line = MAC.sub(lambda m: f"{m.group(1)}{m.group(2)}{m.group(3)}{m.group(2)}{m.group(4)}{m.group(2)}**{m.group(2)}**{m.group(2)}**", line)
