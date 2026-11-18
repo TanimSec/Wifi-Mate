@@ -35,20 +35,116 @@ A Claude Code skill for your own network gear: home routers, Wi-Fi access points
 | FortiGate, Sophos, others | ✅ with rule audit | ⚠️ Diagnose plus steps for you |
 | eero, Google Nest, some Deco (app-only) | ⚠️ Limited | ⚠️ Limited |
 
-## Install
+## Step-by-step guide
+
+### Step 1: Get what you need
+
+| What | Why | How |
+|---|---|---|
+| **Claude Code** | Runs the skill | Install it from [claude.com/claude-code](https://claude.com/claude-code) and sign in |
+| **Git** | Downloads this repo | Windows: [git-scm.com](https://git-scm.com/download/win) (also gives you Git Bash). macOS: `xcode-select --install`. Linux: `sudo apt install git` |
+| **Python 3** | Runs `mask.py`, which hides private details | Windows: [python.org](https://www.python.org/downloads/) or `winget install Python.Python.3.12`. macOS and Linux usually have it already |
+| `whois` (optional) | Shows which company owns a DNS server | Windows: `winget install Microsoft.Sysinternals.Whois`. macOS: built in. Linux: `sudo apt install whois` |
+| A computer **on the same network** as the device | The skill talks to the device directly | Wi-Fi or a cable is fine |
+
+### Step 2: Install the skill
+
+**macOS / Linux**
 
 ```bash
 git clone https://github.com/TanimSec/Wifi-Mate ~/.claude/skills/wifi-mate
 ```
 
-Open Claude Code on a computer on the same network, attach a photo of the device (cover the password sticker) and ask, for example:
+**Windows (PowerShell)**
 
-- "What does my router know about me?"
-- "Audit my OPNsense firewall"
-- "My Wi-Fi is slow, I have three UniFi APs"
-- "Check my access point at 192.168.1.2"
+```powershell
+git clone https://github.com/TanimSec/Wifi-Mate "$env:USERPROFILE\.claude\skills\wifi-mate"
+```
 
-If you don't want to install it, you can paste a prompt from [prompts/](prompts/) instead.
+To update later, run `git pull` inside that folder.
+
+### Step 3: Check that your computer is ready (optional, 1 minute)
+
+From the `wifi-mate` folder:
+
+```bash
+bash scripts/dns-check.sh
+```
+
+You should see `Your DNS lookups are answered by: x.x.x.x`. On Windows, run it in **Git Bash**.
+
+```bash
+ipconfig | python scripts/mask.py      # Windows
+ifconfig | python3 scripts/mask.py    # macOS / Linux
+```
+
+Public IPs, IPv6 addresses and the second half of MAC addresses should show up masked.
+
+### Step 4: Take a photo
+
+Take a photo of the device's label: brand, model and, if it's there, the admin address. **Cover the password sticker.** If you can't take a photo, the model name is enough, for example "TP-Link Archer AX55", "OPNsense 25.1" or "UniFi U6 Lite".
+
+### Step 5: Ask Claude
+
+Open Claude Code in any folder (`claude` in a terminal, or the VS Code extension), attach the photo and ask in plain words:
+
+| You want | Ask |
+|---|---|
+| A privacy check of your router | "What does my router know about me?" |
+| A firewall audit | "Audit my OPNsense firewall, read-only" |
+| A check of one access point | "Check my access point at 192.168.1.2" |
+| Faster Wi-Fi with several APs | "My Wi-Fi is slow, I have three UniFi APs" |
+| Less lag during video calls | "My internet lags when someone streams, fix it on my firewall" |
+| Only a diagnosis, no changes | Add "just diagnose" to any request |
+
+### Step 6: Log in safely
+
+Claude finds the device and works out how it logs in. When it needs your admin password or an API key:
+
+1. Claude gives you **one command**. Run it in your own terminal, not in the chat.
+2. The command saves the password to your system's password store (macOS Keychain, Windows Credential Manager or Linux `secret-tool`).
+3. Claude reads it from there. It never sees the password in the chat and never prints it.
+
+**Firewalls with an API (recommended):** create a read-only API key in the device's own UI and save it the same way:
+- OPNsense: System > Access > Users > your user > API keys
+- FortiGate: System > Administrators > Create New > REST API Admin
+- MikroTik RouterOS v7: the REST API runs on the `www-ssl` service
+- UniFi, Omada, Meraki: the controller's API or integration settings
+
+**SSH:** only if the device has no API and you say yes. Claude runs read-only commands from a fixed list. Using your SSH key is best.
+
+If login fails once, Claude stops and asks you. It never guesses passwords.
+
+### Step 7: Approve changes (speed fix only)
+
+Before each change, Claude shows the old and new values and waits for your **yes**. Settings are backed up first to:
+- `~/router/` on macOS and Linux
+- `C:\Users\<you>\router\` on Windows
+
+With several APs, you'll see the whole channel plan as a table first, and it's applied one AP at a time.
+
+### Step 8: Read the report
+
+- **Privacy and security check:** *What my device knows*, *What my provider can see*, *Security findings* (High first) and *How to fix it*
+- **Speed fix:** *Fixed* (before and after Mbps and lag), *How to undo* and *What I need from you*
+
+### No install? Use a prompt
+
+Copy one of these into Claude Code (or claude.ai) along with your photo:
+- [prompts/privacy-check.md](prompts/privacy-check.md)
+- [prompts/fix-slow-wifi.md](prompts/fix-slow-wifi.md)
+
+### Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| Claude doesn't use the skill | Check that the folder is `~/.claude/skills/wifi-mate` (on Windows, `%USERPROFILE%\.claude\skills\wifi-mate`) and contains `SKILL.md`, then restart Claude Code |
+| `bash: command not found` on Windows | Run the script in Git Bash. Claude Code on Windows uses it automatically |
+| `install whois to see which company owns it` | Install `whois` (see Step 1), or look up the address on any whois website |
+| The admin page doesn't load | Check that you're on the device's network (not a guest network or VPN). Tell Claude the device's IP if you know it |
+| An access point isn't found | APs are rarely the gateway. Give Claude its IP from your router's client list |
+| The login has a captcha or needs your provider's account | Claude opens a browser so you can log in yourself |
+| App-only mesh (eero, Nest) | No web panel exists. Claude checks what the app and your computer can show |
 
 ## How it gets in
 
@@ -85,11 +181,52 @@ Passwords and API keys go into your system's password store (Keychain, Windows C
 - ad companies sharing your ID with each other
 - session recording and device fingerprinting
 
+### Site X-ray: step by step
+
+**1. Get what you need:** [Node.js 20+](https://nodejs.org) and Google Chrome.
+
+**2. Install.** Do Step 2 above first, then copy the folder into its own skill and install its two dependencies.
+
+macOS / Linux:
 ```bash
-git clone https://github.com/TanimSec/Wifi-Mate /tmp/wm && cp -R /tmp/wm/site-xray ~/.claude/skills/site-xray && cd ~/.claude/skills/site-xray && npm install
+cp -R ~/.claude/skills/wifi-mate/site-xray ~/.claude/skills/site-xray
+cd ~/.claude/skills/site-xray && npm install
 ```
 
-It needs Node 20+ and Chrome. Visiting as people in other countries needs a [Gologin](https://gologin.com/cloud-browser/) account. Without one, use `local` mode. See [site-xray/README.md](site-xray/README.md).
+Windows (PowerShell):
+```powershell
+Copy-Item -Recurse "$env:USERPROFILE\.claude\skills\wifi-mate\site-xray" "$env:USERPROFILE\.claude\skills\site-xray"
+cd "$env:USERPROFILE\.claude\skills\site-xray"; npm install
+```
+
+**3. Check it:**
+```bash
+node scripts/xray.mjs doctor
+```
+You should see `"nodeOk": true`, `"deps": "ok"` and `"chrome": "found"`.
+
+**4. Optional: visitors in other countries.** This needs a [Gologin](https://gologin.com/cloud-browser/) account. Copy your API token from the API section of the Gologin dashboard, then:
+- macOS: run the Keychain command in [site-xray/README.md](site-xray/README.md#install)
+- Windows (PowerShell, with the token copied to the clipboard): `[Environment]::SetEnvironmentVariable("GOLOGIN_TOKEN", (Get-Clipboard), "User")`, then open a new terminal
+- Linux: add `export GOLOGIN_TOKEN=...` to `~/.bashrc`
+
+Without Gologin, everything still works in `local` mode: one visitor, using your own Chrome and connection.
+
+**5. Ask Claude:**
+- "X-ray https://some-news-site.com: what does it collect about me?"
+- "Does Reject all actually work on <shop url>?"
+
+Claude opens the report page when it's done.
+
+**Run by hand (no Claude):**
+```bash
+node scripts/xray.mjs start https://example.com/ --as local --run runs/test
+node scripts/xray.mjs look --as local --run runs/test
+node scripts/xray.mjs stop --as local --run runs/test
+node scripts/xray.mjs analyze --run runs/test
+node scripts/xray.mjs report --run runs/test
+```
+The report is saved to `runs/test/report.html`.
 
 ## Files
 
